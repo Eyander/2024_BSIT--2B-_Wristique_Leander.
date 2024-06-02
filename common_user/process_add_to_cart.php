@@ -21,4 +21,3 @@ if(isset($_GET['pdt_id'])){
         //exit(); 
     }
 }
-
