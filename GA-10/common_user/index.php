@@ -16,8 +16,43 @@ session_start();
         header("location: index.php?page=home");
         exit;
     }
+    // Code block for adding items to cart from the search
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['page']) && $_GET['page'] == 'cart' && isset($_POST['add_to_cart'])) {
+        $productId = mysqli_real_escape_string($conn, $_POST['s_pdt_id']);
+        $productName = mysqli_real_escape_string($conn, $_POST['s_pdt_name']);
+        $productPrice = mysqli_real_escape_string($conn, $_POST['s_pdt_price']);
+        $productImage = mysqli_real_escape_string($conn, $_POST['s_pdt_img']);
+        $quantity = mysqli_real_escape_string($conn, $_POST['qty']);
+        
+        $sql_add_to_cart = "INSERT INTO orders (user_id, pdt_id, pdt_qty, order_phase_status) 
+                            VALUES ('$c_user_id', '$productId', '$quantity', '1')";
+        
+        if (mysqli_query($conn, $sql_add_to_cart)) {
+            header("Location: index.php?page=cart");
+            exit;
+        } else {
+            echo "Error: " . $sql_add_to_cart . "<br>" . mysqli_error($conn);
+        }
+    }
+
+    // Code block for handling checkout process
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['page']) && $_GET['page'] == 'checkout' && isset($_POST['checkout'])) {
+        $orderId = mysqli_real_escape_string($conn, $_POST['order_id']);
+        
+        $sql_checkout = "UPDATE orders 
+                            SET order_phase_status = '2'
+                        WHERE user_id = '$c_user_id' 
+                            AND order_id = '$orderId'";
+        
+        if (mysqli_query($conn, $sql_checkout)) {
+            header("Location: index.php?page=checkout_success");
+            exit;
+        } else {
+            echo "Error: " . $sql_checkout . "<br>" . mysqli_error($conn);
+        }
+    }
     include_once "../top_border.php"; 
-?>
+    ?>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -138,34 +173,21 @@ session_start();
                                             <?php echo $full_order['pdt_name'] . " - Php " . number_format($full_order['pdt_price'], 2) . " x " . $full_order['pdt_qty'] . " pcs"; ?>
                                         </li>
                                     <?php } 
-                        /* ========update shipping fee==========*/
-                                    $update_shipping_fee = "UPDATE orders AS o
-                                                            JOIN (
-                                                                SELECT MIN(order_id) as min_order_id
-                                                                FROM orders
-                                                                WHERE order_phase_status = '1'
-                                                                GROUP BY order_ref_no
-                                                            ) AS ou ON o.order_id = ou.min_order_id
-                                                                SET o.shipping_fee = $shipping_fee 
-                                                                WHERE o.user_id = '$c_user_id'";
-                                    $sql_result_update = mysqli_query($conn, $update_shipping_fee);
-                                ?>
-                                <?php
+                                    
                                     $total_amt_with_shipping = $total_amt + $shipping_fee;
-                                ?>
+                                    ?>
                                 
-                                <li class="list-group-item float-end">
-                                    <div class="float-end">
-                                        Amount: <?php echo "Php ". number_format($total_amt, 2);?><br>
-                                        <small>+shipping: <?php echo "Php ". number_format($shipping_fee, 2);?></small>
-                                    </div>
-                                </li>
-                                <li class="list-group-item" style="padding-left: 25vh;">
-                                   <b>Total amount: <?php echo "Php ". number_format($total_amt_with_shipping, 2);?></b>
-                                </li>
+                                    <li class="list-group-item float-end">
+                                        <div class="float-end">
+                                            Amount: <?php echo "Php ". number_format($total_amt, 2);?><br>
+                                            <small>+shipping: <?php echo "Php ". number_format($shipping_fee, 2);?></small>
+                                        </div>
+                                    </li>
+                                    <li class="list-group-item" style="padding-left: 25vh;">
+                                    <b>Total amount: <?php echo "Php ". number_format($total_amt_with_shipping, 2);?></b>
+                                    </li>
                             </ul>
-
-
+                            
                                 <form action="process_order.php" method="post">
                                     <div class="mt-3">
 
@@ -281,7 +303,7 @@ session_start();
 
         /*=============== MY ORDERS PAGE =================*/
 
-       else if($_GET['page'] == 'myorder'){?>
+       else if($_GET['page'] == 'myorders'){?>
             <div class="row">
                     <?php
                         $sql_get_user_order = "SELECT DISTINCT 
@@ -401,7 +423,7 @@ session_start();
                 <?php }
     } /*--page--*/
 
-    else {
+    else { 
         
     }
     ?>
